@@ -11,7 +11,7 @@ pipeline {
         // Stage 1: Checkout code
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/Ellin2024/Calculator-Test.git'
+                git branch: 'main', url: 'https://github.com/phyo-thet-khaing/Calculator.git'
             }
         }
         
