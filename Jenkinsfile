@@ -1,6 +1,9 @@
 pipeline {
     agent any
-    
+
+    tools{
+         maven "maven3.9"
+     }
     environment {
         DOCKER_REPO = 'calculator-test'
         DOCKER_HOST_PORT = '8080'
