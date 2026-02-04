@@ -47,7 +47,7 @@ pipeline {
                     allowMissing: true,
                     alwaysLinkToLastBuild: true,
                     keepAll: true,
-                    reportDir: 'target',
+                    reportDir: 'target/site/jacoco',
                     reportFiles: 'index.html',
                     reportName: 'JaCoCo Coverage'
                 ])
@@ -61,7 +61,7 @@ pipeline {
                     allowMissing: true,
                     alwaysLinkToLastBuild: true,
                     keepAll: true,
-                    reportDir: 'target/site',
+                    reportDir: 'target/site/jacoco',
                     reportFiles: 'checkstyle.html',
                     reportName: 'Checkstyle Report'
                 ])
