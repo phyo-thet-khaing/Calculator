@@ -6,16 +6,16 @@ pipeline {
     }
 
     environment {
-        DOCKER_REPO = 'calculator-test'
-        DOCKER_HOST_PORT = '8082'
-        DOCKER_CONTAINER_PORT = '8080'
+        DOCKER_REPO = "calculator"
+        DOCKER_CREDENTIALS_ID = "dockerhub-credentials"
+        DOCKER_HOST_PORT = "8082"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                git branch: 'main',  url: 'https://github.com/phyo-thet-khaing/Calculator.git'
+                git branch: 'main', url: 'https://github.com/travvizzzz/calculator.git'
             }
         }
 
@@ -71,17 +71,11 @@ pipeline {
 
         stage('Run Docker Container') {
             steps {
-                sh '''
-                        docker stop calculator-test 2>/dev/null  true
-                        docker rm calculator-test 2>/dev/null  true
-                    '''
-
-                    sh """
-                        docker run -d \
-                          --name calculator-test \
-                          -p ${DOCKER_HOST_PORT}:${DOCKER_CONTAINER_PORT} \
-                          ${DOCKER_REPO}:${IMAGE_TAG}
-                    """
+                sh """
+                    docker stop calculator-container  true
+                    docker rm calculator-container  true
+                    docker run -d --name calculator-container -p 8082:8080 ${DOCKER_REPO}:${env.IMAGE_TAG}
+                """
             }
         }
     }
