@@ -111,22 +111,13 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
     post {
         always {
             echo "✅ Pipeline finished."
-            archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
         }
-
         success {
-            echo "🎉 Pipeline succeeded!"
-            echo "🌐 App running at: http://localhost:${DOCKER_HOST_PORT}/"
+            echo "🎉 Pipeline succeeded! App running at http://localhost:${env.DOCKER_HOST_PORT}/"
         }
-
         failure {
-            echo "❌ Pipeline failed!"
-            sh 'docker stop calculator-test 2>/dev/null || true'
-            sh 'docker rm calculator-test 2>/dev/null || true'
-        }
-
-        cleanup {
-            cleanWs()
+            echo "❌ Pipeline failed."
         }
     }
+}
 }
