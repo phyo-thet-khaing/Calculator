@@ -1,20 +1,22 @@
 pipeline {
  agent any
- 
- environment {
+
+ tools {
+        maven "maven3.9"
+    }
+
+    environment {
         DOCKER_REPO = 'calculator-test'
         DOCKER_HOST_PORT = '8082'
         DOCKER_CONTAINER_PORT = '8080'
     }
-
-    stages {
-
-        stage('Checkout') {
-            steps {
-                git branch: 'main',
-                    url: 'https://github.com/phyo-thet-khaing/Calculator.git'
-            }
-        }
+ 
+ stages {
+  stage('Checkout'){
+   steps {
+    git branch: 'main', url: 'https://github.com/phyo-thet-khaing/Calculator.git'
+   }
+  }
   
   stage('Unit Test'){
    steps{
@@ -53,6 +55,7 @@ pipeline {
     }
  }
 }
+
 post {
           always {
               echo "✅ Pipeline finished."
