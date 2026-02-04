@@ -81,9 +81,6 @@ pipeline {
                     docker run -d --name calculator-test -p ${DOCKER_HOST_PORT}:${DOCKER_CONTAINER_PORT} ${DOCKER_REPO}:${IMAGE_TAG}
                 """
 
-                // Optional: check container health
-                sleep 10
-                sh "curl --retry 5 --retry-delay 5 http://localhost:${DOCKER_HOST_PORT} || true"
             }
         }
     }
