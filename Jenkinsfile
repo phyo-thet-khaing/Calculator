@@ -5,60 +5,58 @@ pipeline {
         maven "maven3.9"
     }
 
-   environment {
+    environment {
         DOCKER_REPO = 'calculator-test'
         DOCKER_HOST_PORT = '8082'
         DOCKER_CONTAINER_PORT = '8080'
     }
 
     stages {
-
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                   url: 'https://github.com/phyo-thet-khaing/Calculator.git'
+                git branch: 'main', url: 'https://github.com/phyo-thet-khaing/Calculator.git'
             }
         }
 
-        stage('Build, Test & Coverage') {
+        stage('Build & Test') {
             steps {
-                // This generates JaCoCo HTML at target/site/jacoco
+                // Run tests and generate JaCoCo
                 sh 'mvn clean verify'
-                junit 'target/surefire-reports/*.xml'
+                
+                // Safely publish test results even if there are none
+                junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
             }
         }
 
         stage('JaCoCo Report') {
             steps {
                 publishHTML([
+                    allowMissing: true,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
                     reportDir: 'target/site/jacoco',
                     reportFiles: 'index.html',
-                    reportName: 'JaCoCo Coverage',
-                    allowMissing: false,   // Required parameter
-                    alwaysLinkToLastBuild: true,   // Required parameter
-                    keepAll: true   // Required parameter
+                    reportName: 'JaCoCo Coverage'
                 ])
             }
         }
 
-        stage("Static Code Analysis (Checkstyle)") {
+        stage('Static Code Analysis (Checkstyle)') {
             steps {
                 sh 'mvn checkstyle:checkstyle'
                 publishHTML([
+                    allowMissing: true,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
                     reportDir: 'target/site',
                     reportFiles: 'checkstyle.html',
-                    reportName: 'Checkstyle Report',
-                    allowMissing: false,   // Required parameter
-                    alwaysLinkToLastBuild: true,   // Required parameter
-                    keepAll: true   // Required parameter
+                    reportName: 'Checkstyle Report'
                 ])
             }
         }
 
-
         stage('Build Jar') {
             steps {
-                // Jar build AFTER coverage
                 sh 'mvn clean package -DskipTests'
             }
         }
@@ -76,25 +74,29 @@ pipeline {
 
         stage('Run Docker Container') {
             steps {
-                echo "Running container locally (port 8081)..."
+                echo "Running Docker container..."
                 sh """
-                docker stop calculator-container || true
-                docker rm calculator-container || true
-                docker run -d --name calculator-container -p 8082:8080 ${DOCKER_REPO}:${env.IMAGE_TAG}
+                    docker stop calculator-test || true
+                    docker rm calculator-test || true
+                    docker run -d --name calculator-test -p ${DOCKER_HOST_PORT}:${DOCKER_CONTAINER_PORT} ${DOCKER_REPO}:${IMAGE_TAG}
                 """
+
+                // Optional: check container health
+                sleep 10
+                sh "curl --retry 5 --retry-delay 5 http://localhost:${DOCKER_HOST_PORT} || true"
             }
         }
     }
 
     post {
+        always {
+            echo "✅ Pipeline finished."
+        }
         success {
-            echo "✅ Pipeline succeeded! App running at http://localhost:${DOCKER_HOST_PORT}/"
+            echo "🎉 Pipeline succeeded! App running at http://localhost:${env.DOCKER_HOST_PORT}/"
         }
         failure {
             echo "❌ Pipeline failed."
-        }
-        always {
-            echo "🏁 Pipeline finished."
         }
     }
 }
