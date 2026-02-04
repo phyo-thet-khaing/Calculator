@@ -18,16 +18,29 @@ pipeline {
             }
         }
 
-        stage('Build & Test') {
-            steps {
-                // Run tests and generate JaCoCo
-                sh 'mvn clean verify'
+        // stage('Build & Test') {
+        //     steps {
+        //         // Run tests and generate JaCoCo
+        //         sh 'mvn clean verify'
                 
-                // Safely publish test results even if there are none
-                junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
-            }
-        }
+        //         // Safely publish test results even if there are none
+        //         junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
+        //     }
+        // }
 
+
+        stage('Unit Test'){
+   steps{
+    sh 'mvn test' 
+   }
+    post {
+                always {
+                    junit 'target/surefire-reports/*.xml'
+     // jacoco execPattern: 'target/jacoco.exec', classPattern: 'target/classes', sourcePattern: 'src/main/java', inclusionPattern: '**/*.class'
+                }
+            }
+  }
+        
         stage('JaCoCo Report') {
             steps {
                 publishHTML([
