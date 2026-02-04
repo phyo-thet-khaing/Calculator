@@ -15,27 +15,22 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/phyo-thet-khaing/Calculator.git'
+                git branch: 'main',  url: 'https://github.com/phyo-thet-khaing/Calculator.git'
             }
         }
 
-        stage('Unit Test') {
+        stage('Build, Test & Coverage') {
             steps {
-                sh 'mvn test'
-            }
-            post {
-                always {
-                    junit allowEmptyResults: true,
-                          testResults: 'target/surefire-reports/*.xml'
-                }
+                // This generates JaCoCo HTML at target/site/jacoco
+                sh 'mvn clean verify'
+                junit 'target/surefire-reports/*.xml'
             }
         }
 
         stage('JaCoCo Report') {
             steps {
                 publishHTML([
-                    allowMissing: true,
+                    allowMissing: false,
                     alwaysLinkToLastBuild: true,
                     keepAll: true,
                     reportDir: 'target/site/jacoco',
@@ -45,10 +40,10 @@ pipeline {
             }
         }
 
-        stage('Static Code Analysis (Checkstyle)') {
+        stage("Static Code Analysis (Checkstyle)") {
             steps {
                 sh 'mvn checkstyle:checkstyle'
-                publishHTML(target: [
+                publishHTML([
                     reportDir: 'target/site',
                     reportFiles: 'checkstyle.html',
                     reportName: 'Checkstyle Report'
@@ -58,6 +53,7 @@ pipeline {
 
         stage('Build Jar') {
             steps {
+                // Jar build AFTER coverage
                 sh 'mvn clean package -DskipTests'
             }
         }
@@ -65,29 +61,19 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    if (!fileExists('Dockerfile')) {
-                        writeFile file: 'Dockerfile', text: '''
-FROM openjdk:11-jre-slim
-WORKDIR /app
-COPY target/*.jar app.jar
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
-'''
-                    }
-
-                    env.IMAGE_TAG = env.BUILD_NUMBER
-                    sh "docker build -t ${DOCKER_REPO}:${IMAGE_TAG} ."
-                    sh "docker tag ${DOCKER_REPO}:${IMAGE_TAG} ${DOCKER_REPO}:latest"
+                    def imageTag = "${env.BUILD_NUMBER}"
+                    sh "docker build -t ${DOCKER_REPO}:${imageTag} ."
+                    sh "docker tag ${DOCKER_REPO}:${imageTag} ${DOCKER_REPO}:latest"
+                    env.IMAGE_TAG = imageTag
                 }
             }
         }
 
         stage('Run Docker Container') {
             steps {
-                script {
-                    sh '''
-                        docker stop calculator-test 2>/dev/null || true
-                        docker rm calculator-test 2>/dev/null || true
+                sh '''
+                        docker stop calculator-test 2>/dev/null  true
+                        docker rm calculator-test 2>/dev/null  true
                     '''
 
                     sh """
@@ -96,7 +82,6 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
                           -p ${DOCKER_HOST_PORT}:${DOCKER_CONTAINER_PORT} \
                           ${DOCKER_REPO}:${IMAGE_TAG}
                     """
-                }
             }
         }
     }
@@ -104,15 +89,12 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
     post {
         always {
             echo "✅ Pipeline finished."
-            archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
         }
-
+        success {
+            echo "🎉 Pipeline succeeded! App running at http://localhost:${env.DOCKER_HOST_PORT}/"
+        }
         failure {
-            echo "❌ Pipeline failed!"
-        }
-
-        cleanup {
-            cleanWs()
+            echo "❌ Pipeline failed."
         }
     }
 }
