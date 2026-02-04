@@ -72,8 +72,8 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 sh """
-                    docker stop calculator-container  true
-                    docker rm calculator-container  true
+                    docker stop calculator-container || true
+                    docker rm calculator-container || true
                     docker run -d --name calculator-container -p 8082:8080 ${DOCKER_REPO}:${env.IMAGE_TAG}
                 """
             }
