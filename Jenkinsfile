@@ -61,7 +61,7 @@ pipeline {
                     allowMissing: true,
                     alwaysLinkToLastBuild: true,
                     keepAll: true,
-                    reportDir: 'target/site/jacoco',
+                    reportDir: 'target/site',
                     reportFiles: 'checkstyle.html',
                     reportName: 'Checkstyle Report'
                 ])
