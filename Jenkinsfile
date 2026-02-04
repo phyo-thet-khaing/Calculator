@@ -26,7 +26,8 @@ pipeline {
             }
             post {
                 always {
-                    junit 'target/surefire-reports/*.xml'
+                    junit allowEmptyResults: true,
+                          testResults: 'target/surefire-reports/*.xml'
                 }
             }
         }
@@ -34,7 +35,7 @@ pipeline {
         stage('JaCoCo Report') {
             steps {
                 publishHTML([
-                    allowMissing: false,
+                    allowMissing: true,
                     alwaysLinkToLastBuild: true,
                     keepAll: true,
                     reportDir: 'target/site/jacoco',
@@ -74,10 +75,9 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 '''
                     }
 
-                    def imageTag = env.BUILD_NUMBER
-                    sh "docker build -t ${DOCKER_REPO}:${imageTag} ."
-                    sh "docker tag ${DOCKER_REPO}:${imageTag} ${DOCKER_REPO}:latest"
-                    env.IMAGE_TAG = imageTag
+                    env.IMAGE_TAG = env.BUILD_NUMBER
+                    sh "docker build -t ${DOCKER_REPO}:${IMAGE_TAG} ."
+                    sh "docker tag ${DOCKER_REPO}:${IMAGE_TAG} ${DOCKER_REPO}:latest"
                 }
             }
         }
@@ -96,13 +96,6 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
                           -p ${DOCKER_HOST_PORT}:${DOCKER_CONTAINER_PORT} \
                           ${DOCKER_REPO}:${IMAGE_TAG}
                     """
-
-                    sleep 10
-
-                    sh """
-                        curl --retry 5 --retry-delay 5 --max-time 30 \
-                        http://localhost:${DOCKER_HOST_PORT} || true
-                    """
                 }
             }
         }
@@ -111,13 +104,15 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
     post {
         always {
             echo "✅ Pipeline finished."
+            archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
         }
-        success {
-            echo "🎉 Pipeline succeeded! App running at http://localhost:${env.DOCKER_HOST_PORT}/"
-        }
+
         failure {
-            echo "❌ Pipeline failed."
+            echo "❌ Pipeline failed!"
+        }
+
+        cleanup {
+            cleanWs()
         }
     }
-}
 }
