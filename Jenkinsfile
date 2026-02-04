@@ -24,6 +24,30 @@ pipeline {
     junit 'target/surefire-reports/*.xml'
    }
   }
+
+  stage('JaCoCo Report') {
+            steps {
+                publishHTML([
+                    allowMissing: true,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'target/site/jacoco',
+                    reportFiles: 'index.html',
+                    reportName: 'JaCoCo Coverage'
+                ])
+            }
+        }
+
+        stage('Static Code Analysis (Checkstyle)') {
+            steps {
+                sh 'mvn checkstyle:checkstyle'
+                publishHTML(target: [
+                    reportDir: 'target/site',
+                    reportFiles: 'checkstyle.html',
+                    reportName: 'Checkstyle Report'
+                ])
+            }
+        }
   
   stage('Build Jar'){
    steps{
