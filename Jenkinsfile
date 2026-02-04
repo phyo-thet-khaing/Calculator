@@ -1,7 +1,7 @@
 pipeline {
- agent any
+    agent any
 
- tools {
+    tools {
         maven "maven3.9"
     }
 
@@ -10,22 +10,25 @@ pipeline {
         DOCKER_HOST_PORT = '8082'
         DOCKER_CONTAINER_PORT = '8080'
     }
- 
- stages {
-  stage('Checkout'){
-   steps {
-    git branch: 'main', url: 'https://github.com/phyo-thet-khaing/Calculator.git'
-   }
-  }
-  
-  stage('Unit Test'){
-   steps{
-    sh 'mvn test'
-    junit 'target/surefire-reports/*.xml'
-   }
-  }
 
-  stage('JaCoCo Report') {
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/phyo-thet-khaing/Calculator.git'
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                // Run tests AND generate JaCoCo coverage
+                sh 'mvn clean verify'
+                
+                // Publish test results safely
+                junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
+            }
+        }
+
+        stage('JaCoCo Report') {
             steps {
                 publishHTML([
                     allowMissing: true,
@@ -41,24 +44,27 @@ pipeline {
         stage('Static Code Analysis (Checkstyle)') {
             steps {
                 sh 'mvn checkstyle:checkstyle'
-                publishHTML(target: [
+                publishHTML([
+                    allowMissing: true,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
                     reportDir: 'target/site',
                     reportFiles: 'checkstyle.html',
                     reportName: 'Checkstyle Report'
                 ])
             }
         }
-  
-  stage('Build Jar'){
-   steps{
-     sh 'mvn clean package -DskipTests'
-   }
-  }
-  
-  stage('Build Docker Image') {
+
+        stage('Build Jar') {
+            steps {
+                sh 'mvn clean package -DskipTests'
+            }
+        }
+
+        stage('Build Docker Image') {
             steps {
                 script {
-                    // Build Docker image and tag it with build number
+                    // Use build number as tag
                     def imageTag = "${env.BUILD_NUMBER}"
                     sh "docker build -t ${DOCKER_REPO}:${imageTag} ."
                     sh "docker tag ${DOCKER_REPO}:${imageTag} ${DOCKER_REPO}:latest"
@@ -66,28 +72,28 @@ pipeline {
                 }
             }
         }
-        
-        stage('Run Docker Container') {
-        steps {
-            echo 'Running container locally (port 8080)...'
-            sh '''
-                docker stop calculator-test || true
-                docker rm calculator-test || true
-                docker run -d --name calculator-test -p 8082:8080 calculator-test:v1
-            '''
-        }    
-    }
- }
-}
 
-post {
-          always {
-              echo "✅ Pipeline finished."
-          }
-          success {
-             echo "Pipeline succeeded! App running at http://localhost:${env.DOCKER_HOST_PORT}/"
-          }
-          failure {
-              echo "Pipeline failed."
-          }
-      }
+        stage('Run Docker Container') {
+            steps {
+                echo "Running Docker container..."
+                sh """
+                    docker stop calculator-test || true
+                    docker rm calculator-test || true
+                    docker run -d --name calculator-test -p ${DOCKER_HOST_PORT}:${DOCKER_CONTAINER_PORT} ${DOCKER_REPO}:${IMAGE_TAG}
+                """
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "✅ Pipeline finished."
+        }
+        success {
+            echo "🎉 Pipeline succeeded! App running at http://localhost:${env.DOCKER_HOST_PORT}/"
+        }
+        failure {
+            echo "❌ Pipeline failed."
+        }
+    }
+}
