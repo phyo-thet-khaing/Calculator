@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        DOCKER_REPO = 'calculator-test'
+        DOCKER_REPO = 'ptk-calculator-test'
         DOCKER_HOST_PORT = '8085'
         DOCKER_CONTAINER_PORT = '8080'
     }
@@ -89,8 +89,8 @@ pipeline {
             steps {
                 echo "Running Docker container..."
                 sh """
-                    docker stop calculator-test || true
-                    docker rm calculator-test || true
+                    docker stop  ptk-calculator-test || true
+                    docker rm  ptk-calculator-test || true
                     docker run -d --name ptk-calculator-test -p ${DOCKER_HOST_PORT}:${DOCKER_CONTAINER_PORT} ${DOCKER_REPO}:${IMAGE_TAG}
                 """
 
