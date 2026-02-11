@@ -91,7 +91,7 @@ pipeline {
                 sh """
                     docker stop calculator-test || true
                     docker rm calculator-test || true
-                    docker run -d --name calculator-test -p ${DOCKER_HOST_PORT}:${DOCKER_CONTAINER_PORT} ${DOCKER_REPO}:${IMAGE_TAG}
+                    docker run -d --name ptk-calculator-test -p ${DOCKER_HOST_PORT}:${DOCKER_CONTAINER_PORT} ${DOCKER_REPO}:${IMAGE_TAG}
                 """
 
             }
