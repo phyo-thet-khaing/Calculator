@@ -104,9 +104,19 @@ pipeline {
         }
         success {
             echo "🎉 Pipeline succeeded! App running at http://localhost:${env.DOCKER_HOST_PORT}/"
+             emailext(
+                to: 'phyothetkhing2002@gmail.com',
+                 subject: '✅ Build SUCCESS',
+                 body: 'Build completed successfully.'
+             )
         }
         failure {
             echo "❌ Pipeline failed."
+             emailext(
+               to: 'phyothetkhing2002@gmail.com',
+                subject: '❌ Build FAILED',
+                body: 'Build failed. Check logs.'
+             )
         }
     }
 }
