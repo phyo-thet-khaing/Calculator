@@ -7,7 +7,7 @@ pipeline {
 
     environment {
         DOCKER_REPO = 'calculator-test'
-        DOCKER_HOST_PORT = '8082'
+        DOCKER_HOST_PORT = '8085'
         DOCKER_CONTAINER_PORT = '8080'
     }
 
