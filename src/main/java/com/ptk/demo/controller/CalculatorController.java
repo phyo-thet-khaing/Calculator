@@ -17,7 +17,7 @@ public class CalculatorController
 	
 	
 	 // For addition
-    @GetMapping("/add")
+    @GetMapping("/adding")
     public String add(@RequestParam double a, @RequestParam double b)
     {
         double result = calculatorService.add(a,b);
