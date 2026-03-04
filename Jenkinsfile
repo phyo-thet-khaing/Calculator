@@ -52,21 +52,38 @@ pipeline {
                     reportName: 'JaCoCo Coverage'
                 ])
             }
+
+            
         }
 
-        stage('Static Code Analysis (Checkstyle)') {
-            steps {
-                sh 'mvn checkstyle:checkstyle'
-                publishHTML([
-                    allowMissing: true,
-                    alwaysLinkToLastBuild: true,
-                    keepAll: true,
-                    reportDir: 'target/site',
-                    reportFiles: 'checkstyle.html',
-                    reportName: 'Checkstyle Report'
-                ])
-            }
+        stage('Static Code Analysis (Checkstyle + SonarQube)') 
+        {
+    steps {
+        // Run Checkstyle
+        sh 'mvn checkstyle:checkstyle'
+
+        // Publish Checkstyle Report
+        publishHTML([
+            allowMissing: true,
+            alwaysLinkToLastBuild: true,
+            keepAll: true,
+            reportDir: 'target/site',
+            reportFiles: 'checkstyle.html',
+            reportName: 'Checkstyle Report'
+        ])
+
+        // Run SonarQube Analysis
+        withSonarQubeEnv('sonar') {
+            sh """
+            ${scannerHome}/bin/sonar-scanner \
+            -Dsonar.projectKey=calculator \
+            -Dsonar.projectName=calculator \
+            -Dsonar.sources=. \
+            -Dsonar.java.binaries=target/classes
+            """
         }
+    }
+}
 
         stage('Build Jar') {
             steps {
