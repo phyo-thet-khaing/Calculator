@@ -9,12 +9,26 @@ pipeline {
         DOCKER_REPO = 'ptk-calculator-test'
         DOCKER_HOST_PORT = '8085'
         DOCKER_CONTAINER_PORT = '8080'
+        TEST_PORT = '8081'  // Add test port
     }
 
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/phyo-thet-khaing/Calculator.git'
+            }
+        }
+
+
+        stage('Unit Test') {
+            steps {
+                // Run tests on different port to avoid conflict
+                sh 'mvn test -Dserver.port=${TEST_PORT}'
+            }
+            post {
+                always {
+                    junit 'target/surefire-reports/*.xml'
+                }
             }
         }
 
@@ -40,6 +54,7 @@ pipeline {
                             }
                         }
             }
+
         
         stage('JaCoCo Report') {
             steps {
@@ -52,38 +67,35 @@ pipeline {
                     reportName: 'JaCoCo Coverage'
                 ])
             }
-
-            
         }
 
-        stage('Static Code Analysis (Checkstyle + SonarQube)') 
-        {
-    steps {
-        // Run Checkstyle
-        sh 'mvn checkstyle:checkstyle'
+        stage('Static Code Analysis (Checkstyle + SonarQube)') {
+            steps {
+                // Run Checkstyle
+                sh 'mvn checkstyle:checkstyle'
 
-        // Publish Checkstyle Report
-        publishHTML([
-            allowMissing: true,
-            alwaysLinkToLastBuild: true,
-            keepAll: true,
-            reportDir: 'target/site',
-            reportFiles: 'checkstyle.html',
-            reportName: 'Checkstyle Report'
-        ])
+                // Publish Checkstyle Report
+                publishHTML([
+                    allowMissing: true,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'target/site',
+                    reportFiles: 'checkstyle.html',
+                    reportName: 'Checkstyle Report'
+                ])
 
-        // Run SonarQube Analysis
-        withSonarQubeEnv('sonar') {
-            sh """
-            ${scannerHome}/bin/sonar-scanner \
-            -Dsonar.projectKey=calculator \
-            -Dsonar.projectName=calculator \
-            -Dsonar.sources=. \
-            -Dsonar.java.binaries=target/classes
-            """
+                // Run SonarQube Analysis
+                withSonarQubeEnv('sonar') {
+                    sh """
+                    ${scannerHome}/bin/sonar-scanner \
+                    -Dsonar.projectKey=calculator \
+                    -Dsonar.projectName=calculator \
+                    -Dsonar.sources=. \
+                    -Dsonar.java.binaries=target/classes
+                    """
+                }
+            }
         }
-    }
-}
 
         stage('Build Jar') {
             steps {
@@ -106,11 +118,10 @@ pipeline {
             steps {
                 echo "Running Docker container..."
                 sh """
-                    docker stop  ptk-calculator-test || true
-                    docker rm  ptk-calculator-test || true
+                    docker stop ptk-calculator-test || true
+                    docker rm ptk-calculator-test || true
                     docker run -d --name ptk-calculator-test -p ${DOCKER_HOST_PORT}:${DOCKER_CONTAINER_PORT} ${DOCKER_REPO}:${IMAGE_TAG}
                 """
-
             }
         }
     }
@@ -119,21 +130,6 @@ pipeline {
         always {
             echo "✅ Pipeline finished."
         }
-        success {
-            echo "🎉 Pipeline succeeded! App running at http://localhost:${env.DOCKER_HOST_PORT}/"
-             emailext(
-                to: 'phyothetkhing2002@gmail.com',
-                 subject: '✅ Build SUCCESS',
-                 body: 'Build completed successfully.'
-             )
-        }
-        failure {
-            echo "❌ Pipeline failed."
-             emailext(
-               to: 'phyothetkhing2002@gmail.com',
-                subject: '❌ Build FAILED',
-                body: 'Build failed. Check logs.'
-             )
-        }
+        
     }
 }
