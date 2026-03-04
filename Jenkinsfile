@@ -9,7 +9,6 @@ pipeline {
         DOCKER_REPO = 'ptk-calculator-test'
         DOCKER_HOST_PORT = '8085'
         DOCKER_CONTAINER_PORT = '8080'
-        TEST_PORT = '8081'
     }
 
     stages {
@@ -22,7 +21,7 @@ pipeline {
 
         stage('Build & Test') {
             steps {
-                sh "mvn clean verify -Dserver.port=${TEST_PORT}"
+                sh "mvn clean verify"
             }
             post {
                 always {
