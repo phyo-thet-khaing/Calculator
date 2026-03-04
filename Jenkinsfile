@@ -9,21 +9,20 @@ pipeline {
         DOCKER_REPO = 'ptk-calculator-test'
         DOCKER_HOST_PORT = '8085'
         DOCKER_CONTAINER_PORT = '8080'
-        TEST_PORT = '8081'  // Add test port
+        TEST_PORT = '8081'
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/phyo-thet-khaing/Calculator.git'
             }
         }
 
-
-        stage('Unit Test') {
+        stage('Build & Test') {
             steps {
-                // Run tests on different port to avoid conflict
-                sh 'mvn test -Dserver.port=${TEST_PORT}'
+                sh "mvn clean verify -Dserver.port=${TEST_PORT}"
             }
             post {
                 always {
@@ -32,31 +31,7 @@ pipeline {
             }
         }
 
-        // stage('Build & Test') {
-        //     steps {
-        //         // Run tests and generate JaCoCo
-        //         sh 'mvn clean verify'
-                
-        //         // Safely publish test results even if there are none
-        //         junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
-        //     }
-        // }
-
-
-        stage('Unit Test'){
-            steps{
-                sh 'mvn test' 
-            }
-                post {
-                            always {
-                                junit 'target/surefire-reports/*.xml'
-                // jacoco execPattern: 'target/jacoco.exec', classPattern: 'target/classes', sourcePattern: 'src/main/java', inclusionPattern: '**/*.class'
-                            }
-                        }
-            }
-
-        
-        stage('JaCoCo Report') {
+        stage('Publish JaCoCo Report') {
             steps {
                 publishHTML([
                     allowMissing: true,
@@ -69,12 +44,10 @@ pipeline {
             }
         }
 
-        stage('Static Code Analysis (Checkstyle + SonarQube)') {
+        stage('Static Code Analysis') {
             steps {
-                // Run Checkstyle
                 sh 'mvn checkstyle:checkstyle'
 
-                // Publish Checkstyle Report
                 publishHTML([
                     allowMissing: true,
                     alwaysLinkToLastBuild: true,
@@ -84,22 +57,9 @@ pipeline {
                     reportName: 'Checkstyle Report'
                 ])
 
-                // Run SonarQube Analysis
                 withSonarQubeEnv('sonar') {
-                    sh """
-                    ${scannerHome}/bin/sonar-scanner \
-                    -Dsonar.projectKey=calculator \
-                    -Dsonar.projectName=calculator \
-                    -Dsonar.sources=. \
-                    -Dsonar.java.binaries=target/classes
-                    """
+                    sh 'mvn sonar:sonar'
                 }
-            }
-        }
-
-        stage('Build Jar') {
-            steps {
-                sh 'mvn clean package -DskipTests'
             }
         }
 
@@ -116,11 +76,12 @@ pipeline {
 
         stage('Run Docker Container') {
             steps {
-                echo "Running Docker container..."
                 sh """
                     docker stop ptk-calculator-test || true
                     docker rm ptk-calculator-test || true
-                    docker run -d --name ptk-calculator-test -p ${DOCKER_HOST_PORT}:${DOCKER_CONTAINER_PORT} ${DOCKER_REPO}:${IMAGE_TAG}
+                    docker run -d --name ptk-calculator-test \
+                    -p ${DOCKER_HOST_PORT}:${DOCKER_CONTAINER_PORT} \
+                    ${DOCKER_REPO}:${IMAGE_TAG}
                 """
             }
         }
@@ -130,6 +91,5 @@ pipeline {
         always {
             echo "✅ Pipeline finished."
         }
-        
     }
 }
