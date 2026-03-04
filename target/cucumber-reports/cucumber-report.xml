@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Cucumber" time="4.073" tests="1" skipped="0" failures="0" errors="0">
+<testcase classname="Calculator" name="Sum two numbers" time="0.195">
+<system-out><![CDATA[
+Given I have two numbers: 1 and 2...........................................passed
+When the calculator sums them...............................................passed
+Then I receive 3 as a result................................................passed
+]]></system-out>
+</testcase>
+</testsuite>
