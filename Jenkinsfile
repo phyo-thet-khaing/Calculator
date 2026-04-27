@@ -6,18 +6,22 @@ pipeline {
     }
 
     environment {
-        DOCKER_REPO = 'ptk-calculator-test'
-        DOCKER_HOST_PORT = '8085'
-        DOCKER_CONTAINER_PORT = '8080'
+        DOCKER_REPO = 'phyothetkhaing/ptk-calculator-test'    
+        KUBE_DEPLOYMENT = "deployment.yaml"
+        KUBE_SERVICE = "service.yaml"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/phyo-thet-khaing/Calculator.git'
+                git branch: 'main',
+                url: 'https://github.com/phyo-thet-khaing/Calculator.git'
             }
         }
+
+
+        stage('Build Project') {
 
         stage('Build & Test') {
             steps {
@@ -31,17 +35,21 @@ pipeline {
         }
 
         stage('Publish JaCoCo Report') {
+
             steps {
-                publishHTML([
-                    allowMissing: true,
-                    alwaysLinkToLastBuild: true,
-                    keepAll: true,
-                    reportDir: 'target/site/jacoco',
-                    reportFiles: 'index.html',
-                    reportName: 'JaCoCo Coverage'
-                ])
+                sh 'mvn clean package -DskipTests'
             }
         }
+
+
+       
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh """
+                    docker build -t phyothetkhaing/ptk-cal:1.0 .
+                    """
 
         stage('Static Code Analysis') {
             steps {
@@ -58,30 +66,48 @@ pipeline {
 
                 withSonarQubeEnv('sonar') {
                     sh 'mvn sonar:sonar'
+
                 }
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Login to Docker Hub') {
             steps {
-                script {
-                    def imageTag = "${env.BUILD_NUMBER}"
-                    sh "docker build -t ${DOCKER_REPO}:${imageTag} ."
-                    sh "docker tag ${DOCKER_REPO}:${imageTag} ${DOCKER_REPO}:latest"
-                    env.IMAGE_TAG = imageTag
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-hub-cred',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh """
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    """
                 }
             }
         }
 
-        stage('Run Docker Container') {
+        stage('Push Docker Image') {
             steps {
                 sh """
+
+                docker push phyothetkhaing/ptk-cal:1.0
+                """
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh """
+                kubectl apply -f ${KUBE_DEPLOYMENT}
+                kubectl apply -f ${KUBE_SERVICE}
+                """
+
                     docker stop ptk-calculator-test || true
                     docker rm ptk-calculator-test || true
                     docker run -d --name ptk-calculator-test \
                     -p ${DOCKER_HOST_PORT}:${DOCKER_CONTAINER_PORT} \
                     ${DOCKER_REPO}:${IMAGE_TAG}
                 """
+
             }
         }
     }
@@ -90,5 +116,17 @@ pipeline {
         always {
             echo "✅ Pipeline finished."
         }
+
+
+        success {
+            echo "🎉 SUCCESS: App deployed!"
+           
+        }
+
+        failure {
+            echo "❌ FAILED: Check logs."
+           
+        }
+
     }
 }
