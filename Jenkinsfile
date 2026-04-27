@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        DOCKER_REPO = 'phyothetkhaing/ptk-calculator-test'    
+        DOCKER_REPO = 'phyothetkhaing/ptk-cal:1.0'
         KUBE_DEPLOYMENT = "deployment.yaml"
         KUBE_SERVICE = "service.yaml"
     }
@@ -20,9 +20,6 @@ pipeline {
             }
         }
 
-
-        stage('Build Project') {
-
         stage('Build & Test') {
             steps {
                 sh "mvn clean verify"
@@ -34,22 +31,19 @@ pipeline {
             }
         }
 
-        stage('Publish JaCoCo Report') {
-
+        stage('Package') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                sh "mvn clean package -DskipTests"
             }
         }
 
-
-       
-
         stage('Build Docker Image') {
             steps {
-                script {
-                    sh """
+                sh """
                     docker build -t phyothetkhaing/ptk-cal:1.0 .
-                    """
+                """
+            }
+        }
 
         stage('Static Code Analysis') {
             steps {
@@ -66,7 +60,6 @@ pipeline {
 
                 withSonarQubeEnv('sonar') {
                     sh 'mvn sonar:sonar'
-
                 }
             }
         }
@@ -79,7 +72,7 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh """
-                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
                     """
                 }
             }
@@ -88,8 +81,7 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 sh """
-
-                docker push phyothetkhaing/ptk-cal:1.0
+                    docker push phyothetkhaing/ptk-cal:1.0
                 """
             }
         }
@@ -97,17 +89,9 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh """
-                kubectl apply -f ${KUBE_DEPLOYMENT}
-                kubectl apply -f ${KUBE_SERVICE}
+                    kubectl apply -f ${KUBE_DEPLOYMENT}
+                    kubectl apply -f ${KUBE_SERVICE}
                 """
-
-                    docker stop ptk-calculator-test || true
-                    docker rm ptk-calculator-test || true
-                    docker run -d --name ptk-calculator-test \
-                    -p ${DOCKER_HOST_PORT}:${DOCKER_CONTAINER_PORT} \
-                    ${DOCKER_REPO}:${IMAGE_TAG}
-                """
-
             }
         }
     }
@@ -116,17 +100,11 @@ pipeline {
         always {
             echo "✅ Pipeline finished."
         }
-
-
         success {
             echo "🎉 SUCCESS: App deployed!"
-           
         }
-
         failure {
             echo "❌ FAILED: Check logs."
-           
         }
-
     }
 }
