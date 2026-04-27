@@ -1,0 +1,4 @@
+com\ptk\demo\CalculatorApplicationTests.class
+com\ptk\demo\acceptance\CucumberSpringConfiguration.class
+com\ptk\demo\acceptance\StepDefinitions.class
+com\ptk\demo\acceptance\CucumberTest.class

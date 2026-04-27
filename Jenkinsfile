@@ -6,24 +6,27 @@ pipeline {
     }
 
     environment {
-        DOCKER_REPO = 'ptk-calculator-test'
         DOCKER_HOST_PORT = '8085'
         DOCKER_CONTAINER_PORT = '8080'
-        TEST_PORT = '8081'  // Add test port
+        TEST_PORT = '8081'
+
+        DOCKER_REPO = 'phyothetkhaing/ptk-cal:1.0'
+        KUBE_DEPLOYMENT = "deployment.yaml"
+        KUBE_SERVICE = "service.yaml"
     }
 
     stages {
+
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/phyo-thet-khaing/Calculator.git'
+                git branch: 'main',
+                url: 'https://github.com/phyo-thet-khaing/Calculator.git'
             }
         }
 
-
-        stage('Unit Test') {
+        stage('Build & Test') {
             steps {
-                // Run tests on different port to avoid conflict
-                sh 'mvn test -Dserver.port=${TEST_PORT}'
+                sh "mvn clean test"
             }
             post {
                 always {
@@ -32,30 +35,6 @@ pipeline {
             }
         }
 
-        // stage('Build & Test') {
-        //     steps {
-        //         // Run tests and generate JaCoCo
-        //         sh 'mvn clean verify'
-                
-        //         // Safely publish test results even if there are none
-        //         junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
-        //     }
-        // }
-
-
-        stage('Unit Test'){
-            steps{
-                sh 'mvn test' 
-            }
-                post {
-                            always {
-                                junit 'target/surefire-reports/*.xml'
-                // jacoco execPattern: 'target/jacoco.exec', classPattern: 'target/classes', sourcePattern: 'src/main/java', inclusionPattern: '**/*.class'
-                            }
-                        }
-            }
-
-        
         stage('JaCoCo Report') {
             steps {
                 publishHTML([
@@ -71,10 +50,8 @@ pipeline {
 
         stage('Static Code Analysis (Checkstyle + SonarQube)') {
             steps {
-                // Run Checkstyle
                 sh 'mvn checkstyle:checkstyle'
 
-                // Publish Checkstyle Report
                 publishHTML([
                     allowMissing: true,
                     alwaysLinkToLastBuild: true,
@@ -84,7 +61,6 @@ pipeline {
                     reportName: 'Checkstyle Report'
                 ])
 
-                // Run SonarQube Analysis
                 withSonarQubeEnv('sonar') {
                     sh """
                     ${scannerHome}/bin/sonar-scanner \
@@ -97,7 +73,7 @@ pipeline {
             }
         }
 
-        stage('Build Jar') {
+        stage('Build Project') {
             steps {
                 sh 'mvn clean package -DskipTests'
             }
@@ -105,22 +81,45 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    def imageTag = "${env.BUILD_NUMBER}"
-                    sh "docker build -t ${DOCKER_REPO}:${imageTag} ."
-                    sh "docker tag ${DOCKER_REPO}:${imageTag} ${DOCKER_REPO}:latest"
-                    env.IMAGE_TAG = imageTag
+                sh "docker build -t ${DOCKER_REPO} ."
+            }
+        }
+
+        stage('Login to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-hub-cred',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh """
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    """
                 }
             }
         }
 
         stage('Run Docker Container') {
             steps {
-                echo "Running Docker container..."
                 sh """
-                    docker stop ptk-calculator-test || true
-                    docker rm ptk-calculator-test || true
-                    docker run -d --name ptk-calculator-test -p ${DOCKER_HOST_PORT}:${DOCKER_CONTAINER_PORT} ${DOCKER_REPO}:${IMAGE_TAG}
+                docker stop ptk-calculator-test || true
+                docker rm ptk-calculator-test || true
+                docker run -d --name ptk-calculator-test -p ${DOCKER_HOST_PORT}:${DOCKER_CONTAINER_PORT} ${DOCKER_REPO}
+                """
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                sh "docker push ${DOCKER_REPO}"
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh """
+                kubectl apply -f ${KUBE_DEPLOYMENT}
+                kubectl apply -f ${KUBE_SERVICE}
                 """
             }
         }
@@ -130,6 +129,13 @@ pipeline {
         always {
             echo "✅ Pipeline finished."
         }
-        
+
+        success {
+            echo "🎉 SUCCESS: App deployed!"
+        }
+
+        failure {
+            echo "❌ FAILED: Check logs."
+        }
     }
 }
