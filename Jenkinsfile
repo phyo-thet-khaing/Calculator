@@ -20,11 +20,27 @@ pipeline {
             }
         }
 
+
         stage('Build Project') {
+
+        stage('Build & Test') {
+            steps {
+                sh "mvn clean verify"
+            }
+            post {
+                always {
+                    junit 'target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('Publish JaCoCo Report') {
+
             steps {
                 sh 'mvn clean package -DskipTests'
             }
         }
+
 
        
 
@@ -34,6 +50,23 @@ pipeline {
                     sh """
                     docker build -t phyothetkhaing/ptk-cal:1.0 .
                     """
+
+        stage('Static Code Analysis') {
+            steps {
+                sh 'mvn checkstyle:checkstyle'
+
+                publishHTML([
+                    allowMissing: true,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'target/site',
+                    reportFiles: 'checkstyle.html',
+                    reportName: 'Checkstyle Report'
+                ])
+
+                withSonarQubeEnv('sonar') {
+                    sh 'mvn sonar:sonar'
+
                 }
             }
         }
@@ -55,6 +88,7 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 sh """
+
                 docker push phyothetkhaing/ptk-cal:1.0
                 """
             }
@@ -66,6 +100,14 @@ pipeline {
                 kubectl apply -f ${KUBE_DEPLOYMENT}
                 kubectl apply -f ${KUBE_SERVICE}
                 """
+
+                    docker stop ptk-calculator-test || true
+                    docker rm ptk-calculator-test || true
+                    docker run -d --name ptk-calculator-test \
+                    -p ${DOCKER_HOST_PORT}:${DOCKER_CONTAINER_PORT} \
+                    ${DOCKER_REPO}:${IMAGE_TAG}
+                """
+
             }
         }
     }
@@ -74,6 +116,7 @@ pipeline {
         always {
             echo "✅ Pipeline finished."
         }
+
 
         success {
             echo "🎉 SUCCESS: App deployed!"
@@ -84,5 +127,6 @@ pipeline {
             echo "❌ FAILED: Check logs."
            
         }
+
     }
 }
