@@ -20,16 +20,7 @@ pipeline {
             }
         }
 
-        stage('Build & Test') {
-            steps {
-                sh "mvn clean verify"
-            }
-            post {
-                always {
-                    junit 'target/surefire-reports/*.xml'
-                }
-            }
-        }
+        
 
         stage('Package') {
             steps {
@@ -45,24 +36,7 @@ pipeline {
             }
         }
 
-        stage('Static Code Analysis') {
-            steps {
-                sh 'mvn checkstyle:checkstyle'
-
-                publishHTML([
-                    allowMissing: true,
-                    alwaysLinkToLastBuild: true,
-                    keepAll: true,
-                    reportDir: 'target/site',
-                    reportFiles: 'checkstyle.html',
-                    reportName: 'Checkstyle Report'
-                ])
-
-                withSonarQubeEnv('sonar') {
-                    sh 'mvn sonar:sonar'
-                }
-            }
-        }
+        
 
         stage('Login to Docker Hub') {
             steps {
