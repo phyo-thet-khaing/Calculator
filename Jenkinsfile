@@ -56,11 +56,20 @@ pipeline {
        
 
         stage('Deploy to Kubernetes') {
-            steps {
-                sh """
-                    kubectl apply -f ${KUBE_DEPLOYMENT}
-                    kubectl apply -f ${KUBE_SERVICE}
-                """
+        agent {
+            docker {
+                image 'bitnami/kubectl:latest'
+            }
+        }
+        steps {
+            withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                sh '''
+                    export KUBECONFIG=$KUBECONFIG
+
+                    kubectl version --client
+                    kubectl apply -f deployment.yaml
+                    kubectl apply -f service.yaml
+                '''
             }
         }
     }
