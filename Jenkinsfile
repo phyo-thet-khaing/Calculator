@@ -56,15 +56,20 @@ pipeline {
        
 
         stage('Deploy to Kubernetes') {
-            steps {
-                sh 'kubectl apply -f hazelcast.yaml --validate=false'
+        agent {
+            docker {
+                image 'bitnami/kubectl:latest'
+            }
+        }
+        steps {
+            withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                sh '''
+                    export KUBECONFIG=$KUBECONFIG
 
-                sh 'kubectl rollout status deployment/hazelcast'
-        withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]){
-          sh 'kubectl apply -f hazelcast.yaml'
-                  sh 'kubectl apply -f deployment.yaml'
-                  sh 'kubectl apply -f service.yaml'
-                }
+                    kubectl version --client
+                    kubectl apply -f deployment.yaml
+                    kubectl apply -f service.yaml
+                '''
             }
         }
     }
