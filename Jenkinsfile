@@ -38,27 +38,22 @@ pipeline {
 
         
 
-        stage('Login to Docker Hub') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'docker-hub-cred',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    '''
-                }
-            }
-        }
+        
 
-        stage('Push Docker Image') {
-            steps {
-                sh """
-                    docker push phyothetkhaing/ptk-cal:1.0
-                """
+        stage('Push to Docker Hub') {
+        steps {
+            withCredentials([usernamePassword(
+                credentialsId: 'docker-hub-cred',
+                usernameVariable: 'USER',
+                passwordVariable: 'PASS'
+            )]) {
+                sh 'docker login -u $USER -p $PASS'
+                sh 'docker push phyothetkhaing/ptk-cal:1.0'
             }
         }
+    }
+
+       
 
         stage('Deploy to Kubernetes') {
             steps {
