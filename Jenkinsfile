@@ -38,12 +38,20 @@ pipeline {
 
         
 
+        
+
         stage('Push to Docker Hub') {
-            steps {
-               sh 'docker login -u $USER -p $PASS'
-               sh 'docker push phyothetkhaing/ptk-cal:1.0'
+        steps {
+            withCredentials([usernamePassword(
+                credentialsId: 'docker-hub-cred',
+                usernameVariable: 'USER',
+                passwordVariable: 'PASS'
+            )]) {
+                sh 'docker login -u $USER -p $PASS'
+                sh 'docker push phyothetkhaing/ptk-cal:1.0'
             }
         }
+    }
 
        
 
