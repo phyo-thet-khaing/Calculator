@@ -16,11 +16,9 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                url: 'https://github.com/phyo-thet-khaing/Calculator.git'
+                    url: 'https://github.com/phyo-thet-khaing/Calculator.git'
             }
         }
-
-        
 
         stage('Package') {
             steps {
@@ -30,46 +28,41 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh """
-                    docker build -t phyothetkhaing/ptk-cal:1.0 .
-                """
+                sh "docker build -t ${DOCKER_REPO} ."
             }
         }
-
-        
-
-        
 
         stage('Push to Docker Hub') {
-        steps {
-            withCredentials([usernamePassword(
-                credentialsId: 'docker-hub-cred',
-                usernameVariable: 'USER',
-                passwordVariable: 'PASS'
-            )]) {
-                sh 'docker login -u $USER -p $PASS'
-                sh 'docker push phyothetkhaing/ptk-cal:1.0'
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-hub-cred',
+                    usernameVariable: 'USER',
+                    passwordVariable: 'PASS'
+                )]) {
+                    sh '''
+                        echo "$PASS" | docker login -u "$USER" --password-stdin
+                        docker push $DOCKER_REPO
+                    '''
+                }
             }
         }
-    }
-
-       
 
         stage('Deploy to Kubernetes') {
-        agent {
-            docker {
-                image 'bitnami/kubectl:latest'
+            agent {
+                docker {
+                    image 'bitnami/kubectl:latest'
+                }
             }
-        }
-        steps {
-            withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-                sh '''
-                    export KUBECONFIG=$KUBECONFIG
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh '''
+                        export KUBECONFIG=$KUBECONFIG
 
-                    kubectl version --client
-                    kubectl apply -f deployment.yaml
-                    kubectl apply -f service.yaml
-                '''
+                        kubectl version --client
+                        kubectl apply -f deployment.yaml
+                        kubectl apply -f service.yaml
+                    '''
+                }
             }
         }
     }
@@ -85,5 +78,4 @@ pipeline {
             echo "❌ FAILED: Check logs."
         }
     }
-}
 }
