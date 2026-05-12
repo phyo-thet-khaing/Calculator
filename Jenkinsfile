@@ -47,19 +47,19 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
-             steps {
-        withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-            sh '''
-                export KUBECONFIG=$KUBECONFIG
+//         stage('Deploy to Kubernetes') {
+//              steps {
+//         withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+//             sh '''
+//                 export KUBECONFIG=$KUBECONFIG
 
-                kubectl version --client
-                kubectl apply -f deployment.yaml
-                kubectl apply -f service.yaml
-            '''
-        }
-    }
-}
+//                 kubectl version --client
+//                 kubectl apply -f deployment.yaml
+//                 kubectl apply -f service.yaml
+//             '''
+//         }
+//     }
+// }
             stage('Deploy with Ansible') {
             steps {
                 sh 'ansible-playbook ansible/playbook.yaml -i ansible/inventory'
