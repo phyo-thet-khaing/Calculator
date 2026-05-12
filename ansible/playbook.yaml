@@ -2,12 +2,12 @@
   hosts: localhost
   gather_facts: false
 
+  environment:
+    KUBECONFIG: /var/jenkins_home/.kube/config
+
   tasks:
-    - name: Login (OpenShift case)
-      shell: |
-        oc login https://api.cluster:6443 \
-        --token={{ lookup('env','TOKEN') }} \
-        --insecure-skip-tls-verify=true
+    - name: Verify cluster access
+      shell: kubectl get nodes
 
     - name: Apply deployment
       shell: kubectl apply -f {{ playbook_dir }}/../deployment.yaml --validate=false
