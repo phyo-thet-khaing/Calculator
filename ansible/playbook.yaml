@@ -1,12 +1,13 @@
 - name: Deploy to Kubernetes
-  hosts: all
-
-  environment:
-    KUBECONFIG: /var/jenkins_home/.kube/config
-
+  hosts: localhost
+  gather_facts: false
   tasks:
     - name: Apply deployment
-      shell: kubectl apply -f ../deployment.yaml
+      shell: |
+        export KUBECONFIG={{ lookup('env','KUBECONFIG') }}
+        kubectl apply -f ../deployment.yaml --validate=false
 
     - name: Apply service
-      shell: kubectl apply -f ../service.yaml
+      shell: |
+        export KUBECONFIG={{ lookup('env','KUBECONFIG') }}
+        kubectl apply -f {{ playbook_dir }}/../service.yaml --validate=false
