@@ -70,21 +70,21 @@ pipeline {
             }
         }
 
-        stage('Deploy to PROD') {
-            steps {
-                withCredentials([
-                    file(
-                        credentialsId: 'kubeconfig-prod',
-                        variable: 'KUBECONFIG'
-                    )
-                ]) {
-                    sh '''
-                    kubectl apply -f deployment-prod.yaml
-                    kubectl apply -f service.yaml
-                    '''
-                }
-            }
-        }
+        // stage('Deploy to PROD') {
+        //     steps {
+        //         withCredentials([
+        //             file(
+        //                 credentialsId: 'kubeconfig-prod',
+        //                 variable: 'KUBECONFIG'
+        //             )
+        //         ]) {
+        //             sh '''
+        //             kubectl apply -f deployment-prod.yaml
+        //             kubectl apply -f service.yaml
+        //             '''
+        //         }
+        //     }
+        // }
 
 //         stage('Deploy to Kubernetes') {
 //              steps {
