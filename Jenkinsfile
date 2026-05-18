@@ -47,6 +47,45 @@ pipeline {
             }
         }
 
+        stage('Deploy to DEV') {
+            steps {
+                withCredentials([
+                    file(
+                        credentialsId: 'kubeconfig-dev',
+                        variable: 'KUBECONFIG'
+                    )
+                ]) {
+                    sh '''
+                    kubectl config current-context
+                    kubectl apply -f deployment-dev.yaml --validate=false
+                    kubectl apply -f service.yaml --validate=false
+                    '''
+                }
+            }
+        }
+
+        stage('Approval') {
+            steps {
+                input "Deploy to Production?"
+            }
+        }
+
+        stage('Deploy to PROD') {
+            steps {
+                withCredentials([
+                    file(
+                        credentialsId: 'kubeconfig-prod',
+                        variable: 'KUBECONFIG'
+                    )
+                ]) {
+                    sh '''
+                    kubectl apply -f deployment-prod.yaml
+                    kubectl apply -f service.yaml
+                    '''
+                }
+            }
+        }
+
 //         stage('Deploy to Kubernetes') {
 //              steps {
 //         withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
@@ -60,17 +99,19 @@ pipeline {
 //         }
 //     }
 // }
-      stage('Deploy with Ansible') {
-            steps {
-                  withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-                    sh '''
-                        export KUBECONFIG=$KUBECONFIG
-                        ansible-playbook ansible/playbook.yaml -i ansible/inventory
-                    '''
-                }
-            }
-        }
-    }
+
+
+    //   stage('Deploy with Ansible') {
+    //         steps {
+    //               withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+    //                 sh '''
+    //                     export KUBECONFIG=$KUBECONFIG
+    //                     ansible-playbook ansible/playbook.yaml -i ansible/inventory
+    //                 '''
+    //             }
+    //         }
+    //     }
+    // }
 
     post {
         always {
