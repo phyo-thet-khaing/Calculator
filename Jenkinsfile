@@ -57,8 +57,8 @@ pipeline {
                 ]) {
                     sh '''
                     kubectl config current-context
-                    kubectl apply -f deployment-dev.yaml --validate=false
-                    kubectl apply -f service.yaml --validate=false
+                    kubectl apply -f deployment-dev.yaml --validate=false --insecure-skip-tls-verify=true
+                    kubectl apply -f service.yaml --validate=false --insecure-skip-tls-verify=true
                     '''
                 }
             }
