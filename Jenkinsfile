@@ -79,7 +79,7 @@ pipeline {
                     )
                 ]) {
                     sh '''
-                    kubectl apply -f deployment-prod.yaml --server=https://host.docker.internal:58139--validate=false --insecure-skip-tls-verify=true
+                    kubectl apply -f deployment-prod.yaml --server=https://host.docker.internal:58139 --validate=false --insecure-skip-tls-verify=true
                     kubectl apply -f service.yaml --validate=false --insecure-skip-tls-verify=true
                     '''
                 }
