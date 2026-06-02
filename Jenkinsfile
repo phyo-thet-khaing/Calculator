@@ -57,8 +57,8 @@ pipeline {
                 ]) {
                     sh '''
                     kubectl config current-context
-                    kubectl apply -f deployment-dev.yaml --validate=false --insecure-skip-tls-verify=true
-                    kubectl apply -f service.yaml --validate=false --insecure-skip-tls-verify=true
+                    kubectl apply -f deployment-dev.yaml  --server=https://host.docker.internal:59382 --validate=false --insecure-skip-tls-verify=true
+                    kubectl apply -f service.yaml   --validate=false --insecure-skip-tls-verify=true
                     '''
                 }
             }
@@ -70,21 +70,21 @@ pipeline {
             }
         }
 
-        // stage('Deploy to PROD') {
-        //     steps {
-        //         withCredentials([
-        //             file(
-        //                 credentialsId: 'kubeconfig-prod',
-        //                 variable: 'KUBECONFIG'
-        //             )
-        //         ]) {
-        //             sh '''
-        //             kubectl apply -f deployment-prod.yaml
-        //             kubectl apply -f service.yaml
-        //             '''
-        //         }
-        //     }
-        // }
+        stage('Deploy to PROD') {
+            steps {
+                withCredentials([
+                    file(
+                        credentialsId: 'kubeconfig-prod',
+                        variable: 'KUBECONFIG'
+                    )
+                ]) {
+                    sh '''
+                    kubectl apply -f deployment-prod.yaml --server=https://host.docker.internal:59382--validate=false --insecure-skip-tls-verify=true
+                    kubectl apply -f service.yaml --validate=false --insecure-skip-tls-verify=true
+                    '''
+                }
+            }
+        }
 
 //         stage('Deploy to Kubernetes') {
 //              steps {
